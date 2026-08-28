@@ -1,0 +1,41 @@
+name: action-checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Lint workflows
+        uses: docker://rhysd/actionlint:1.7.12
+
+  setup-node-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Put the fixture at the workspace root
+        shell: bash
+        run: |
+          cp test/setup-node/package.json package.json
+          cp test/setup-node/package-lock.json package-lock.json
+      - uses: ./setup-node
+      - name: Check tool versions
+        shell: bash
+        run: |
+          node_version="$(node --version)"
+          npm_version="$(npm --version)"
+          echo "node: $node_version"
+          echo "npm: $npm_version"
+          [[ "$node_version" == v24.* ]]
+          [[ "$npm_version" == 12.* ]]
