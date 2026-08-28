@@ -23,7 +23,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-node@v6
+    - uses: actions/setup-node@v7
       with:
         node-version: ${{ inputs.node-version }}
         # Built-in caching would run `npm config get cache` with the bundled
