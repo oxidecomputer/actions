@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    # "/" covers .github/workflows; composite actions in subdirectories must
+    # be listed explicitly
+    directories:
+      - /
+      - /setup-node
+    schedule:
+      interval: weekly

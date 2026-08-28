@@ -1,0 +1,58 @@
+name: Set up Node and npm
+description: >
+  Install Node, install the npm version we require, and cache the npm download
+  directory. setup-node's built-in caching runs `npm config get cache` with the
+  bundled-with-node npm, which fails devEngines validation when the project
+  requires a newer npm — no shipping Node line bundles npm 12 yet. This action
+  installs the required npm first and handles caching itself.
+
+
+  See https://github.com/actions/setup-node/issues/1553
+
+inputs:
+  node-version:
+    description: Node version to install
+    default: '24'
+  npm-version:
+    description: npm version to install globally (any npm version spec)
+    default: '12'
+  cache-dependency-path:
+    description: Path to the lockfile used in the cache key
+    default: 'package-lock.json'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        # Built-in caching would run `npm config get cache` with the bundled
+        # npm, which fails devEngines validation before we can upgrade npm.
+        # https://github.com/actions/setup-node/issues/1553
+        package-manager-cache: false
+    - name: Validate cache dependency path
+      if: ${{ hashFiles(inputs.cache-dependency-path) == '' }}
+      shell: bash
+      env:
+        CACHE_DEPENDENCY_PATH: ${{ inputs.cache-dependency-path }}
+      run: |
+        echo "No files matched cache-dependency-path: $CACHE_DEPENDENCY_PATH" >&2
+        exit 1
+    - name: Install npm
+      shell: bash
+      env:
+        NPM_VERSION: ${{ inputs.npm-version }}
+      run: npm install --global "npm@$NPM_VERSION"
+
+      # Caching workaround from https://github.com/actions/setup-node/issues/1553
+    - name: Get npm cache directory
+      id: npm-cache
+      shell: bash
+      run: echo "dir=$(npm config get cache)" >> "$GITHUB_OUTPUT"
+    - name: Use npm cache
+      uses: actions/cache@v5
+      with:
+        path: ${{ steps.npm-cache.outputs.dir }}
+        key: ${{ runner.os }}-npm-${{ hashFiles(inputs.cache-dependency-path) }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
