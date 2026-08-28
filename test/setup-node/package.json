@@ -1,0 +1,12 @@
+{
+  "name": "setup-node-smoke",
+  "version": "0.0.0",
+  "private": true,
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "version": ">=12",
+      "onFail": "error"
+    }
+  }
+}
