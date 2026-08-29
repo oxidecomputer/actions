@@ -29,16 +29,24 @@ steps:
   - uses: actions/checkout@v7
   - uses: oxidecomputer/actions/setup-node@main
     with:
-      node-version: '24' # default
+      node-version-file: 'package.json' # default
       npm-version: '12' # default
 ```
+
+By default the Node version comes from the consuming repo's `package.json`
+([`volta.node`, `devEngines.runtime`, or `engines.node`, in that
+order][version-file-docs]), so each repo declares its Node version in one
+place. Pass `node-version` to override the file. Note that setup-node installs
+the newest Node release satisfying the declared range, so an open-ended range
+like `>=24` resolves to the latest major — declare `24` or `^24` to stay on a
+major line.
 
 Repos using this should also require npm in `package.json` so the requirement is
 enforced locally, not just in CI:
 
 ```json
 "engines": {
-  "node": ">=24"
+  "node": "^24"
 },
 "devEngines": {
   "packageManager": {
@@ -63,5 +71,6 @@ LTS release that bundles npm 12 and
 is resolved or moot, consumers can switch back to plain `actions/setup-node`
 with `cache: npm`.
 
+[version-file-docs]: https://github.com/actions/setup-node/blob/94196ee/docs/advanced-usage.md#node-version-file
 [npm-12-changes]: https://github.blog/changelog/2026-06-09-upcoming-breaking-changes-for-npm-v12/
 [min-release-age]: https://docs.npmjs.com/cli/v12/using-npm/config#min-release-age
