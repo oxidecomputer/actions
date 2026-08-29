@@ -17,8 +17,18 @@ description: >
 
 inputs:
   node-version:
-    description: Node version to install
-    default: '24'
+    description: >
+      Node version to install. Overrides node-version-file; leave unset to
+      read the version from the repo's package.json.
+    default: ''
+  node-version-file:
+    description: >
+      File to read the Node version from when node-version is unset. For
+      package.json, setup-node reads volta.node, devEngines.runtime, or
+      engines.node (in that order). Note an open-ended range like `>=24`
+      resolves to the newest Node release; use `24` or `^24` to stay on a
+      major line.
+    default: 'package.json'
   npm-version:
     description: npm version to install globally (any npm version spec)
     default: '12'
@@ -32,6 +42,9 @@ runs:
     - uses: actions/setup-node@v7
       with:
         node-version: ${{ inputs.node-version }}
+        # Only pass the file when node-version is unset so setup-node doesn't
+        # warn about receiving both inputs.
+        node-version-file: ${{ inputs.node-version == '' && inputs.node-version-file || '' }}
         # Built-in caching would run `npm config get cache` with the bundled
         # npm, which fails devEngines validation before we can upgrade npm.
         # https://github.com/actions/setup-node/issues/1553

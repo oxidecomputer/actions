@@ -20,8 +20,20 @@ jobs:
       - name: Lint workflows
         uses: docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
 
-  setup-node-smoke:
+  smoke:
+    name: setup-node-smoke (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # default: node version comes from engines.node in package.json
+          - name: from-package-json
+            node-version: ''
+            expected: v24.
+          # explicit node-version overrides the file
+          - name: explicit-22
+            node-version: '22'
+            expected: v22.
     steps:
       - uses: actions/checkout@v7
       - name: Put the fixture at the workspace root
@@ -30,12 +42,32 @@ jobs:
           cp test/setup-node/package.json package.json
           cp test/setup-node/package-lock.json package-lock.json
       - uses: ./setup-node
+        with:
+          node-version: ${{ matrix.node-version }}
       - name: Check tool versions
         shell: bash
+        env:
+          EXPECTED: ${{ matrix.expected }}
         run: |
           node_version="$(node --version)"
           npm_version="$(npm --version)"
           echo "node: $node_version"
           echo "npm: $npm_version"
-          [[ "$node_version" == v24.* ]]
+          [[ "$node_version" == "$EXPECTED"* ]]
           [[ "$npm_version" == 12.* ]]
+
+  # Single stable job name to use in required status checks. Covers every
+  # matrix entry of the smoke job, including ones added later. always()
+  # ensures the gate runs and fails on upstream failure instead of being
+  # skipped (a skipped check can satisfy branch protection).
+  setup-node-smoke:
+    runs-on: ubuntu-latest
+    needs: smoke
+    if: always()
+    steps:
+      - name: Fail if any matrix job failed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do [[ "$r" == success ]]; done
